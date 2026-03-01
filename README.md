@@ -16,6 +16,9 @@ Installation and start:
 
 F1 = '*' / F2 = '#'
 
+<img width="937" height="672" alt="startscreen" src="https://github.com/user-attachments/assets/d63b6d50-975d-4f47-94a0-8225727da25b" />
+
+
 ![Screenshot](https://github.com/detlefgerhardt/BTX-decoder-for-windows/blob/master/startscreen.png)
 
 ## Links
