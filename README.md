@@ -16,6 +16,8 @@ Installation and start:
 
 F1 = '*' / F2 = '#'
 
+![Screenshot](https://github.com/detlefgerhardt/BTX-decoder-for-windows/blob/master/startscreen.png)
+
 ## Links
 More infos at the original Guthub respository: https://github.com/bildschirmtext/btx_decoder
 Link to the SDL project: https://github.com/libsdl-org
