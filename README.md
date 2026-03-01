@@ -12,8 +12,8 @@ Installation and start:
 - Install .NET8 if not already installed.
 - Get the latest SDL3-Version from https://github.com/libsdl-org/SDL/releases,
   extract SDL3.dll and put it into the native\win-x64 directory.
-- Start with btx_decoder_csharp server-address:port
-  (e.g. btx_decoder_csharp 195.201.94.166:20000)
+- Start with **btx_decoder_csharp server-address:port**
+  (e.g. **btx_decoder_csharp 195.201.94.166:20000**)
 
 F1 = '*' / F2 = '#'
 
