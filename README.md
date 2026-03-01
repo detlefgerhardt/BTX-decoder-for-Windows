@@ -14,7 +14,10 @@ Installation and start:
 - Start with btx_decoder_csharp <server-address>:<port>
   e.g. btx_decoder_csharp 195.201.94.166:20000
 
+F1 = *
+F2 = #
 
+## Links
 More infos at the original Guthub respository: https://github.com/bildschirmtext/btx_decoder
 Link to the SDL project: https://github.com/libsdl-org
 
