@@ -8,6 +8,7 @@ internal static class Sdl3Native
     private static bool _resolverInitialized;
 
     public const uint SDL_INIT_VIDEO = 0x00000020;
+    public const uint SDL_WINDOW_RESIZABLE = 0x00000020;
 
     public const uint SDL_QUIT = 0x100;
     public const uint SDL_KEYDOWN = 0x300;
@@ -18,6 +19,7 @@ internal static class Sdl3Native
 
     public const uint SDL_PIXELFORMAT_ARGB8888 = 372645892;
     public const int SDL_TEXTUREACCESS_STATIC = 0;
+    public const int SDL_LOGICAL_PRESENTATION_LETTERBOX = 2;
 
     public const int SDLK_RETURN = 13;
     public const int SDLK_BACKSPACE = 8;
@@ -144,6 +146,10 @@ internal static class Sdl3Native
 
     [DllImport("SDL3", CallingConvention = CallingConvention.Cdecl)]
     public static extern int SDL_RenderClear(IntPtr renderer);
+
+    [DllImport("SDL3", CallingConvention = CallingConvention.Cdecl)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool SDL_SetRenderLogicalPresentation(IntPtr renderer, int w, int h, int mode);
 
     [DllImport("SDL3", EntryPoint = "SDL_RenderTexture", CallingConvention = CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.I1)]

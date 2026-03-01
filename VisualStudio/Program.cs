@@ -90,8 +90,10 @@ internal static class Program
         decoder.IsBackground = true;
         decoder.Start();
 
-        int width = 624 * 2;
-        int height = 288 * 3;
+        int renderWidth = 624 * 2;
+        int renderHeight = 288 * 3;
+        int windowWidth = renderWidth / 2;
+        int windowHeight = renderHeight / 2;
 
         Sdl3Native.InitNativeResolver();
         if (!Sdl3Native.SDL_Init(Sdl3Native.SDL_INIT_VIDEO))
@@ -103,9 +105,9 @@ internal static class Program
 
         IntPtr window = Sdl3Native.SDL_CreateWindow(
             "BTX-Decoder",
-            width,
-            height,
-            0);
+            windowWidth,
+            windowHeight,
+            Sdl3Native.SDL_WINDOW_RESIZABLE);
         if (window == IntPtr.Zero)
         {
             Console.Error.WriteLine($"SDL_CreateWindow failed: {Sdl3Native.GetErrorString()}");
@@ -124,12 +126,21 @@ internal static class Program
             return 1;
         }
 
+        if (!Sdl3Native.SDL_SetRenderLogicalPresentation(
+            renderer,
+            renderWidth,
+            renderHeight,
+            Sdl3Native.SDL_LOGICAL_PRESENTATION_LETTERBOX))
+        {
+            Console.Error.WriteLine($"SDL_SetRenderLogicalPresentation failed: {Sdl3Native.GetErrorString()}");
+        }
+
         IntPtr texture = Sdl3Native.SDL_CreateTexture(
             renderer,
             Sdl3Native.SDL_PIXELFORMAT_ARGB8888,
             Sdl3Native.SDL_TEXTUREACCESS_STATIC,
-            width,
-            height);
+            renderWidth,
+            renderHeight);
         if (texture == IntPtr.Zero)
         {
             Console.Error.WriteLine($"SDL_CreateTexture failed: {Sdl3Native.GetErrorString()}");
@@ -140,7 +151,7 @@ internal static class Program
             return 1;
         }
 
-        uint[] pixels = new uint[width * height];
+        uint[] pixels = new uint[renderWidth * renderHeight];
         Stopwatch blinkClock = Stopwatch.StartNew();
         if (!Sdl3Native.SDL_StartTextInput(window))
         {
@@ -176,8 +187,8 @@ internal static class Program
                 }
 
                 Layer6.UpdateBlinkClock(blinkClock.ElapsedMilliseconds);
-                UpdatePixels(pixels, width, height);
-                Sdl3Native.SDL_UpdateTexture(texture, IntPtr.Zero, pixels, width * sizeof(uint));
+                UpdatePixels(pixels, renderWidth, renderHeight);
+                Sdl3Native.SDL_UpdateTexture(texture, IntPtr.Zero, pixels, renderWidth * sizeof(uint));
 
                 Sdl3Native.SDL_RenderClear(renderer);
                 Sdl3Native.SDL_RenderCopy(renderer, texture, IntPtr.Zero, IntPtr.Zero);
