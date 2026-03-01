@@ -20,5 +20,6 @@ F1 = '*' / F2 = '#'
 
 ## Links
 More infos at the original Guthub respository: https://github.com/bildschirmtext/btx_decoder
+
 Link to the SDL project: https://github.com/libsdl-org
 
