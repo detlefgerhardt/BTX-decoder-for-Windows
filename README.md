@@ -21,7 +21,7 @@ F1 = '*' / F2 = '#'
 
 
 ## Links
-More infos at the original Github respository: https://github.com/bildschirmtext/btx_decoder
+More information can be found in the original GitHub repository: https://github.com/bildschirmtext/btx_decoder
 
 Link to the SDL project: https://github.com/libsdl-org
 
