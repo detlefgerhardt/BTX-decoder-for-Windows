@@ -104,7 +104,7 @@ internal static class Program
         }
 
         IntPtr window = Sdl3Native.SDL_CreateWindow(
-            "BTX-Decoder",
+            $"BTX-Decoder [{host}:{port}]",
             windowWidth,
             windowHeight,
             Sdl3Native.SDL_WINDOW_RESIZABLE);
