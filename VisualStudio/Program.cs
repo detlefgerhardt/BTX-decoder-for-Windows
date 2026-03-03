@@ -7,6 +7,8 @@ internal static class Program
 {
     private static volatile bool _quit = true;
     private static volatile int _keyboardMode;
+    private static readonly object _keyLogLock = new();
+    private static readonly string _keyLogPath = System.IO.Path.Combine(AppContext.BaseDirectory, "btx_keydown.log");
 
     private const int KmNormal = 0;
     private const int KmFColor = 1;
@@ -337,13 +339,16 @@ internal static class Program
     {
         int k = key.key;
         ushort mod = key.mod;
+        bool hasShift = (mod & Sdl3Native.KMOD_SHIFT) != 0;
+        bool hasAlt = (mod & Sdl3Native.KMOD_ALT) != 0;
+        //LogKeyDown(k, mod);
 
         if (k == Sdl3Native.SDLK_F1) SendBytes(0x13);
         if (k == Sdl3Native.SDLK_F2) SendBytes(0x1C);
         if (k == Sdl3Native.SDLK_F3)
         {
-            if (mod == Sdl3Native.KMOD_NONE) _keyboardMode = KmFColor;
-            if ((mod & Sdl3Native.KMOD_SHIFT) != 0) _keyboardMode = KmBColor;
+            if (!hasShift && !hasAlt) _keyboardMode = KmFColor;
+            if (hasShift) _keyboardMode = KmBColor;
         }
         if (k == Sdl3Native.SDLK_F4) _keyboardMode = KmSize;
         if (k == Sdl3Native.SDLK_F5) _keyboardMode = KmGShift;
@@ -353,19 +358,61 @@ internal static class Program
         if (k == Sdl3Native.SDLK_UP) SendBytes(0x0B);
         if (k == Sdl3Native.SDLK_DOWN) SendBytes(0x0A);
 
-        if (k == Sdl3Native.SDLK_RETURN)
+        if (k == Sdl3Native.SDLK_RETURN || k == Sdl3Native.SDLK_KP_ENTER)
         {
-            if (mod == Sdl3Native.KMOD_NONE) SendBytes(0x0D, 0x0A);
-            if ((mod & Sdl3Native.KMOD_ALT) != 0) SendBytes(0x0D);
-            if ((mod & Sdl3Native.KMOD_SHIFT) != 0) SendBytes(0x18);
+            if (!hasShift && !hasAlt) SendBytes(0x0D, 0x0A);
+            if (hasAlt) SendBytes(0x0D);
+            if (hasShift) SendBytes(0x18);
         }
 
         if (k == Sdl3Native.SDLK_HOME)
         {
-            if (mod == Sdl3Native.KMOD_NONE) SendBytes(0x1E);
-            if ((mod & Sdl3Native.KMOD_SHIFT) != 0) SendBytes(0x0C);
+            if (!hasShift && !hasAlt) SendBytes(0x1E);
+            if (hasShift) SendBytes(0x0C);
         }
 
         if (k == Sdl3Native.SDLK_BACKSPACE) SendBytes(0x08, 0x20, 0x08);
+    }
+
+    private static void LogKeyDown(int keyCode, ushort mod)
+    {
+        try
+        {
+            string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} key={GetKeyName(keyCode)} code={keyCode} mod={GetModName(mod)}{Environment.NewLine}";
+            lock (_keyLogLock)
+            {
+                System.IO.File.AppendAllText(_keyLogPath, line);
+            }
+        }
+        catch
+        {
+            // ignore logging errors to avoid impacting input handling
+        }
+    }
+
+    private static string GetKeyName(int keyCode)
+    {
+        IntPtr namePtr = Sdl3Native.SDL_GetKeyName(keyCode);
+        if (namePtr == IntPtr.Zero)
+        {
+            return $"KEY_{keyCode}";
+        }
+
+        string? name = Marshal.PtrToStringUTF8(namePtr);
+        return string.IsNullOrWhiteSpace(name) ? $"KEY_{keyCode}" : name;
+    }
+
+    private static string GetModName(ushort mod)
+    {
+        if (mod == Sdl3Native.KMOD_NONE)
+        {
+            return "NONE";
+        }
+
+        List<string> parts = new();
+        if ((mod & Sdl3Native.KMOD_SHIFT) != 0) parts.Add("SHIFT");
+        if ((mod & Sdl3Native.KMOD_ALT) != 0) parts.Add("ALT");
+
+        return parts.Count > 0 ? string.Join('|', parts) : $"0x{mod:X4}";
     }
 }

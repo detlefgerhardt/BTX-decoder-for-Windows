@@ -22,6 +22,7 @@ internal static class Sdl3Native
     public const int SDL_LOGICAL_PRESENTATION_LETTERBOX = 2;
 
     public const int SDLK_RETURN = 13;
+	public const int SDLK_KP_ENTER = 1073741912;
     public const int SDLK_BACKSPACE = 8;
     public const int SDLK_HOME = 1073741898;
     public const int SDLK_LEFT = 1073741904;
@@ -169,6 +170,9 @@ internal static class Sdl3Native
     [DllImport("SDL3", CallingConvention = CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.I1)]
     public static extern bool SDL_StopTextInput(IntPtr window);
+
+    [DllImport("SDL3", CallingConvention = CallingConvention.Cdecl)]
+    public static extern IntPtr SDL_GetKeyName(int key);
 
     [DllImport("SDL3", CallingConvention = CallingConvention.Cdecl)]
     public static extern void SDL_DestroyTexture(IntPtr texture);
