@@ -17,6 +17,8 @@ internal static class Program
     private const int KmAttr = 3;
     private const int KmGShift = 4;
 
+    private const string Version = "v1.1";
+
     private static readonly (int Mode, string Input, byte[] Output)[] Translations =
     {
         (KmNormal, "Ä", "\x19HA"u8.ToArray()),
@@ -106,7 +108,7 @@ internal static class Program
         }
 
         IntPtr window = Sdl3Native.SDL_CreateWindow(
-            $"BTX-Decoder [{host}:{port}]",
+            $"BTX-Decoder  {Version}  [connected to {host}:{port}]",
             windowWidth,
             windowHeight,
             Sdl3Native.SDL_WINDOW_RESIZABLE);
