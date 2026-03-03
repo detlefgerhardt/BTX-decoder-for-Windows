@@ -1,7 +1,9 @@
-using System.Text;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
 using BtxDecoder;
+using Microsoft.VisualBasic;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
 
 internal static class Program
 {
@@ -17,7 +19,7 @@ internal static class Program
     private const int KmAttr = 3;
     private const int KmGShift = 4;
 
-    private const string Version = "v1.1";
+    //private const string Version = "v1.1";
 
     private static readonly (int Mode, string Input, byte[] Output)[] Translations =
     {
@@ -77,8 +79,8 @@ internal static class Program
     {
         if (args.Length != 1)
         {
-            Console.WriteLine("Usage: btx_decoder_csharp <host>:<port>");
-            Console.WriteLine("Example: btx_decoder_csharp 195.201.94.166:20000");
+            Console.WriteLine("Usage: BtxDecoder <host>:<port>");
+            Console.WriteLine("Example: BtxDecoder 195.201.94.166:20000");
             return 1;
         }
 
@@ -108,7 +110,7 @@ internal static class Program
         }
 
         IntPtr window = Sdl3Native.SDL_CreateWindow(
-            $"BTX-Decoder  {Version}  [connected to {host}:{port}]",
+            $"BTX Decoder  {GetVersionNumber()}  [connected to {host}:{port}]",
             windowWidth,
             windowHeight,
             Sdl3Native.SDL_WINDOW_RESIZABLE);
@@ -417,4 +419,11 @@ internal static class Program
 
         return parts.Count > 0 ? string.Join('|', parts) : $"0x{mod:X4}";
     }
+
+	private static string GetVersionNumber()
+	{
+		Version? version = Assembly.GetEntryAssembly().GetName().Version;
+		return $"{version.Major}.{version.Minor}";
+	}
+
 }
