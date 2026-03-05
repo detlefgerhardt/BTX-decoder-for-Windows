@@ -27,13 +27,13 @@ Link to the SDL project: https://github.com/libsdl-org
 
 ## Copyright-Hinweis
 
-Der BTX-Dekoder, dem dieses Projekt zugrundliegt, basiert seinerseits auf dem XCept-Dekoder von 1995. Daher noch dieses Copyright-Zusatz.
+Der BTX-Dekoder, dem dieses Projekt zugrundliegt, basiert seinerseits auf dem XCept-Dekoder von 1995. Daher noch dieser Copyright-Zusatz.
 
-Copyright von XCept 2.1
-
-Copyright (c) 1992, 1993 Arno Augustin, Frank Hoering, University of
-Erlangen-Nuremberg, Germany.
-All rights reserved.
+> Copyright von XCept 2.1
+>
+> Copyright (c) 1992, 1993 Arno Augustin, Frank Hoering, University of
+> Erlangen-Nuremberg, Germany.
+> All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
