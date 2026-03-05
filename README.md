@@ -27,7 +27,8 @@ Link to the SDL project: https://github.com/libsdl-org
 
 ## Copyright-Hinweis
 
-Der BTX-Dekoder, dem dieses Projekt zugrunde liegt, basiert seinerseits auf dem XCept-Dekoder von 1995. Daher noch dieser Copyright-Zusatz.
+The BTX decoder on which this project is based is itself based on the XCept
+decoder from 1995. Hence the following copyright notice.
 
 > Copyright von XCept 2.1
 >
