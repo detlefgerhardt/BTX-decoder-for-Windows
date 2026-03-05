@@ -25,7 +25,7 @@ More information can be found in the original GitHub repository: https://github.
 
 Link to the SDL project: https://github.com/libsdl-org
 
-## Copyright-Hinweis
+## Copyright notice
 
 The BTX decoder on which this project is based is itself based on the XCept
 decoder from 1995. Hence the following copyright notice.
