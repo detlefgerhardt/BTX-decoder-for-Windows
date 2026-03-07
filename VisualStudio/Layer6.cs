@@ -111,10 +111,10 @@ internal static class Layer6
     private static readonly TerminalState T = new();
     private static TerminalState Backup = new();
     private static readonly ScreenCell[,] Screen = new ScreenCell[24, 40];
+    private static readonly byte[][] DrcsData = Enumerable.Range(0, 16).Select(_ => new byte[2 * Font.FONT_HEIGHT]).ToArray();
 
     public static int Rows = 24;
     public static int FontHeight = 10;
-    private static int _blinkFrame = -1;
 
     public static void InitLayer6()
     {
@@ -131,7 +131,6 @@ internal static class Layer6
         T.ParBg = Attrib.TRANSPARENT;
         T.BlinkMode = 0;
         T.BlinkRate = 0;
-        _blinkFrame = -1;
 
         for (int y = 0; y < 24; y++)
         {
@@ -195,14 +194,8 @@ internal static class Layer6
 
     public static void UpdateBlinkClock(long elapsedMs)
     {
-        int frame = (int)(elapsedMs / 167); // ~6Hz base for 50% and 33% blink patterns
-        if (frame == _blinkFrame)
-        {
-            return;
-        }
-
-        _blinkFrame = frame;
-        RedrawScreenRect(0, 0, 39, Rows - 1);
+        // Original C decoder keeps flashing attributes effectively steady.
+        // Keep this hook as a no-op for behavior parity.
     }
 
     private static bool AttribAt(int y, int x, int a) => (Screen[y - 1, x - 1].Attr & a) != 0;
@@ -467,10 +460,10 @@ internal static class Layer6
                 }
                 break;
             case Control.FSH:
-                SetAttr(Attrib.FLASH, 1, 0, mode);
+                // Original C decoder ignores flashing begin for rendering parity.
                 break;
             case Control.STD:
-                SetAttr(Attrib.FLASH, 0, 0, mode);
+                // Original C decoder ignores flashing end for rendering parity.
                 break;
             case Control.NSZ:
                 SetAttr(Attrib.NODOUBLE, 1, 0, mode);
@@ -777,28 +770,18 @@ internal static class Layer6
                 switch (c2)
                 {
                     case 0x30: // IVF
-                        T.BlinkMode = 2;
                         return 1;
                     case 0x31: // RIF
-                        T.BlinkMode = 3;
                         return 1;
                     case 0x32: // FF1
-                        T.BlinkMode = 1;
-                        T.BlinkRate = 1;
                         return 1;
                     case 0x33: // FF2
-                        T.BlinkMode = 1;
-                        T.BlinkRate = 2;
                         return 1;
                     case 0x34: // FF3
-                        T.BlinkMode = 1;
-                        T.BlinkRate = 3;
                         return 1;
                     case 0x35: // ICF
-                        T.BlinkRate = (byte)((T.BlinkRate + 1) % 6);
                         return 1;
                     case 0x36: // DCF
-                        T.BlinkRate = (byte)((T.BlinkRate + 5) % 6);
                         return 1;
                 }
                 return 1;
@@ -865,18 +848,41 @@ internal static class Layer6
         {
             int c4 = Layer2.Getc();
             if (c4 < 0) return;
-            if (c4 == 0x28)
+            int c5;
+            if (c4 == 0x20 || c4 == 0x28)
             {
-                XFont.FreeDrcs();
-                c4 = Layer2.Getc();
-                if (c4 < 0) return;
+                if (c4 == 0x28)
+                {
+                    XFont.FreeDrcs();
+                }
+                c5 = Layer2.Getc();
+                if (c5 < 0) return;
+            }
+            else
+            {
+                c5 = c4;
             }
 
-            int c7 = c4;
-            if (c7 == 0x20 || c7 == 0x40)
+            int c6;
+            if (c5 == 0x20)
+            {
+                c6 = Layer2.Getc();
+                if (c6 < 0) return;
+            }
+            else
+            {
+                c6 = c5;
+            }
+
+            int c7;
+            if (c6 == 0x40)
             {
                 c7 = Layer2.Getc();
                 if (c7 < 0) return;
+            }
+            else
+            {
+                c7 = c6;
             }
 
             switch (c7 & 0xF)
@@ -915,7 +921,7 @@ internal static class Layer6
         }
 
         int start = c;
-        byte[][] data = Enumerable.Range(0, 4).Select(_ => new byte[2 * Font.FONT_HEIGHT]).ToArray();
+        byte[][] data = DrcsData;
         int planes = 0;
         int planemask = 0;
         int b = 0;
@@ -1364,8 +1370,10 @@ internal static class Layer6
             }
 
             int x = mode == 2 ? 0 : T.CursorX - 1;
-            while (x < 40 && (mode != 1 || (Screen[y, x].Mark & (uint)mattr) == 0))
+            do
             {
+                int refresh = 0;
+
                 if (mode == 2)
                 {
                     Screen[y, x].Mark &= ~(uint)mattr;
@@ -1376,46 +1384,53 @@ internal static class Layer6
                     switch (a)
                     {
                         case Attrib.NODOUBLE:
+                            if ((Screen[y, x].Attr & (Attrib.XDOUBLE | Attrib.YDOUBLE)) != 0) refresh = 1;
                             Screen[y, x].Attr &= unchecked((uint)~(Attrib.XDOUBLE | Attrib.YDOUBLE));
                             break;
                         case Attrib.XYDOUBLE:
+                            if ((Screen[y, x].Attr & (Attrib.XDOUBLE | Attrib.YDOUBLE)) != (Attrib.XDOUBLE | Attrib.YDOUBLE)) refresh = 1;
                             Screen[y, x].Attr |= (uint)(Attrib.XDOUBLE | Attrib.YDOUBLE);
                             break;
                         case Attrib.XDOUBLE:
+                            if ((Screen[y, x].Attr & (Attrib.XDOUBLE | Attrib.YDOUBLE)) != Attrib.XDOUBLE) refresh = 1;
                             Screen[y, x].Attr &= unchecked((uint)~Attrib.YDOUBLE);
                             Screen[y, x].Attr |= Attrib.XDOUBLE;
                             break;
                         case Attrib.YDOUBLE:
+                            if ((Screen[y, x].Attr & (Attrib.XDOUBLE | Attrib.YDOUBLE)) != Attrib.YDOUBLE) refresh = 1;
                             Screen[y, x].Attr &= unchecked((uint)~Attrib.XDOUBLE);
                             Screen[y, x].Attr |= Attrib.YDOUBLE;
                             break;
                         case Attrib.FOREGROUND:
+                            if (Screen[y, x].Fg != col && Screen[y, x].Chr != ' ') refresh = 1;
                             Screen[y, x].Fg = (byte)col;
                             break;
                         case Attrib.BACKGROUND:
+                            if (Screen[y, x].Bg != col) refresh = 1;
                             Screen[y, x].Bg = (byte)col;
                             break;
                         default:
-                            if (set != 0)
-                            {
-                                Screen[y, x].Attr |= (uint)a;
-                            }
-                            else
-                            {
-                                Screen[y, x].Attr &= unchecked((uint)~a);
-                            }
+                            if (((Screen[y, x].Attr & (uint)a) != 0) != (set != 0)) refresh = 1;
+                            if (set != 0) Screen[y, x].Attr |= (uint)a;
+                            else Screen[y, x].Attr &= unchecked((uint)~a);
                             break;
                     }
 
-                    if (a == Attrib.FLASH && set != 0)
+                    if (refresh != 0)
                     {
-                        Screen[y, x].BlinkMode = (byte)((T.BlinkRate << 2) | (T.BlinkMode & 0x03));
+                        Redrawc(x + 1, y + 1);
                     }
-                    Redrawc(x + 1, y + 1);
+
+                    if (a == Attrib.PROTECTED && y > 0 && RealAttribAt(y, x + 1, Attrib.YDOUBLE)
+                        && (AttribAt(y, x + 1, a) != AttribAt(y + 1, x + 1, a)))
+                    {
+                        Redrawc(x + 1, y);
+                    }
                 }
 
                 x++;
             }
+            while (x < 40 && (mode != 1 || (Screen[y, x].Mark & (uint)mattr) == 0));
         }
         else
         {
@@ -1467,7 +1482,6 @@ internal static class Layer6
             {
                 Screen[y - 1, x - 1].Chr = (uint)(c & ~0x80);
                 Screen[y - 1, x - 1].Set = (byte)set;
-                Screen[y - 1, x - 1].BlinkMode = (byte)((T.BlinkRate << 2) | (T.BlinkMode & 0x03));
                 Redrawc(x, y);
             }
         }
@@ -1496,11 +1510,31 @@ internal static class Layer6
                     Screen[y - 1, x - 1].Fg = (byte)T.ParFg;
                     Screen[y - 1, x - 1].Bg = (byte)T.ParBg;
                     Screen[y - 1, x - 1].Attr = (uint)T.ParAttr;
-                    Screen[y - 1, x - 1].BlinkMode = (byte)((T.BlinkRate << 2) | (T.BlinkMode & 0x03));
 
                     if (xd != 0 && x < 40)
                     {
                         Screen[y - 1, x].Attr = (uint)T.ParAttr;
+                    }
+
+                    int mattr = T.ParAttr & ~Attrib.ANYSIZE;
+                    if ((T.ParAttr & Attrib.ANYSIZE) != 0)
+                    {
+                        mattr |= Attrib.SIZE;
+                    }
+
+                    if (x > 1)
+                    {
+                        Screen[y - 1, x - 1].Mark = (uint)(Screen[y - 1, x - 2].Attr ^ mattr);
+                        Screen[y - 1, x - 1].Mark &= unchecked((uint)~(Attrib.FOREGROUND | Attrib.BACKGROUND));
+                        if (Screen[y - 1, x - 2].Fg != T.ParFg) Screen[y - 1, x - 1].Mark |= Attrib.FOREGROUND;
+                        if (Screen[y - 1, x - 2].Bg != T.ParBg) Screen[y - 1, x - 1].Mark |= Attrib.BACKGROUND;
+                    }
+                    if (x < 40)
+                    {
+                        Screen[y - 1, x].Mark = (uint)(mattr ^ Screen[y - 1, x].Attr);
+                        Screen[y - 1, x].Mark &= unchecked((uint)~(Attrib.FOREGROUND | Attrib.BACKGROUND));
+                        if (Screen[y - 1, x].Fg != T.ParFg) Screen[y - 1, x].Mark |= Attrib.FOREGROUND;
+                        if (Screen[y - 1, x].Bg != T.ParBg) Screen[y - 1, x].Mark |= Attrib.BACKGROUND;
                     }
 
                     Redrawc(x, y);
@@ -1572,56 +1606,6 @@ internal static class Layer6
         int fg = AttrFg(y, x);
         int bg = AttrBg(y, x);
 
-        bool hideGlyphForBlink = false;
-        if (AttribAt(y, x, Attrib.FLASH))
-        {
-            byte packedBlink = Screen[y - 1, x - 1].BlinkMode;
-            int blinkMode = packedBlink & 0x03;
-            int blinkRate = (packedBlink >> 2) & 0x07;
-            if (blinkMode == 0)
-            {
-                blinkMode = 1;
-            }
-
-            bool on = BlinkVisible(blinkRate, x);
-            bool isDrcs = set == Font.DRCS;
-            switch (blinkMode)
-            {
-                case 1: // normal flash: off phase hides glyph
-                    if (!on) hideGlyphForBlink = true;
-                    break;
-                case 2: // inverted flash
-                    if (isDrcs)
-                    {
-                        // Multicolor DRCS ignores fg/bg inversion; emulate visible inverse phase by toggled visibility.
-                        if (on) hideGlyphForBlink = true;
-                    }
-                    else if (on)
-                    {
-                        inverted = !inverted;
-                    }
-                    break;
-                case 3: // reduced intensity flash
-                    if (isDrcs)
-                    {
-                        // Multicolor DRCS has no per-glyph fg channel; emulate reduced intensity as duty-cycle blink.
-                        if (!on) hideGlyphForBlink = true;
-                    }
-                    else if (on)
-                    {
-                        fg = DimColor(fg);
-                    }
-                    break;
-            }
-        }
-
-        if (hideGlyphForBlink)
-        {
-            // Must blank the glyph itself (not just fg/bg), otherwise multicolor DRCS keeps visible.
-            c = ' ';
-            set = Font.PRIM;
-        }
-
         XFont.Xputc(c, set, x - 1, y - 1, xd, yd,
             AttribAt(y, x, Attrib.UNDERLINE) ? 1 : 0,
             ((int)Screen[y - 1, x - 1].Chr >> 8) & 0x7F,
@@ -1668,41 +1652,6 @@ internal static class Layer6
         if ((real & Attrib.XDOUBLE) != 0) Redrawc(x + 1, y);
         if ((real & Attrib.YDOUBLE) != 0) Redrawc(x, y + 1);
         if ((real & Attrib.XDOUBLE) != 0 && (real & Attrib.YDOUBLE) != 0) Redrawc(x + 1, y + 1);
-    }
-
-    private static bool BlinkVisible(int rate, int x)
-    {
-        int phase6 = _blinkFrame % 6;
-        if (phase6 < 0)
-        {
-            phase6 += 6;
-        }
-
-        return rate switch
-        {
-            0 => phase6 < 3, // 1Hz, 50% duty
-            1 => phase6 == 0, // 2Hz, 33%, phase 0
-            2 => phase6 == 2, // 2Hz, 33%, phase 1
-            3 => phase6 == 4, // 2Hz, 33%, phase 2
-            4 => ((x - 1 + phase6) % 6) == 0, // leftwards pattern
-            5 => ((x - 1 - phase6 + 600) % 6) == 0, // rightwards pattern
-            _ => phase6 < 3
-        };
-    }
-
-    private static int DimColor(int col)
-    {
-        if (col == Attrib.TRANSPARENT)
-        {
-            return col;
-        }
-
-        if (col is >= 0 and <= 7)
-        {
-            return col | 8; // CLUT 0 -> half intensity variant
-        }
-
-        return col;
     }
 
     public static void RedrawScreenRect(int x1, int y1, int x2, int y2)
