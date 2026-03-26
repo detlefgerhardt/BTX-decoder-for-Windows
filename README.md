@@ -10,7 +10,7 @@ Caution - 100% Vibe Coding. No manual checks or modifications were made.
 The UI is very minimalistic.
 
 Installation and start:
-- Extract the ZIP file from [binaries](https://github.com/detlefgerhardt/BTX-decoder-for-Windows/tree/main/Binaries) into a directory.
+- Extract the latest ZIP file from [binaries](https://github.com/detlefgerhardt/BTX-decoder-for-Windows/tree/main/Binaries) into a directory.
 - Install .NET8 if not already installed.
 - Get the latest SDL3-Version from https://github.com/libsdl-org/SDL/releases,
   extract SDL3.dll and put it into the native\win-x64 directory.
